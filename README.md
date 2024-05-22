@@ -1,0 +1,1 @@
+# HPC-zad2-MPI
