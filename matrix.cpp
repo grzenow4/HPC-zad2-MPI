@@ -1,13 +1,8 @@
 #include <algorithm>
-#include <iostream>
 
 #include "matrix.hh"
 
 Matrix::Matrix(std::vector<MatrixElement> elems) : elements(elems) {}
-
-bool operator<(const MatrixElement& e1, const MatrixElement& e2) {
-    return e1.row < e2.row || (e1.row == e2.row && e1.col < e2.col);
-}
 
 void Matrix::sort() {
     std::sort(elements.begin(), elements.end());
@@ -98,10 +93,4 @@ Matrix Matrix::multiply(Matrix b) {
     }
 
     return Matrix(res);
-}
-
-void Matrix::print() {
-    for (auto elem: elements) {
-        std::cout << "(" << elem.row << ", " << elem.col << ") -> " << elem.val << "\n";
-    }
 }

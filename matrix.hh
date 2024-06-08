@@ -6,24 +6,26 @@ struct MatrixElement {
     int row;
     int col;
     double val;
+
+    bool operator<(const MatrixElement& other) {
+        return row < other.row || (row == other.row && col < other.col);
+    }
 };
 
 class Matrix {
 public: // private:
     std::vector<MatrixElement> elements;
 
+    void sort();
+
+    Matrix transpose();
+
 public:
     Matrix() = default;
 
     Matrix(std::vector<MatrixElement> elems);
 
-    void sort();
+    Matrix add(Matrix b);
 
-    Matrix transpose();
-
-    Matrix add(Matrix other);
-
-    Matrix multiply(Matrix other);
-
-    void print();
+    Matrix multiply(Matrix b);
 };

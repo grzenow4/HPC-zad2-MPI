@@ -29,9 +29,12 @@ int main(int argc, char *argv[]) {
 
     InputOptions options = parseInput(argc, argv);
 
-    Grid grid(numProcesses, myRank);
-    grid.readMatrices(options.fileA, options.fileB);
-    grid.printMatrix();
+    {
+        Grid grid(numProcesses, myRank);
+        grid.readMatrices(options.fileA, options.fileB);
+        grid.SUMMA_2D();
+        grid.printMatrix();
+    } // ~Grid() must be called before MPI_Finalize();
 
     MPI_Finalize();
     return 0;
