@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
 #include <vector>
 
@@ -75,4 +76,13 @@ void printOptions(InputOptions options) {
               << "type: " << options.type << "\n"
               << "layers: " << options.layers << "\n"
               << "gValue: " << options.gValue << "\n";
+}
+
+bool isSquare(int n) {
+    if (n < 0) {
+        return false;
+    }
+
+    int sr = std::sqrt(n);
+    return (sr * sr == n);
 }

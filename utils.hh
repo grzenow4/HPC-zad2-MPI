@@ -16,3 +16,5 @@ void printUsage(const std::string& progName);
 InputOptions parseInput(int argc, char *argv[]);
 
 void printOptions(InputOptions options);
+
+bool isSquare(int n);
