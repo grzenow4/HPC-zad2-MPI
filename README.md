@@ -40,8 +40,8 @@ unzip xx123456.zip; cd xx123456; rm -rf build; mkdir build; cd build; cmake ..; 
 srun ./matmul [-a sparse_matrix_file_a] [-b sparse_matrix_file_b] [-v] [-g g_value] [-t 2D|3D|balanced] [-l value]
 ```
 where:
-- `-a/b sparse_matrix_file_a/b` is a path to [CSR](https://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29) file storing given sparse matrix. The first row contains 4 integers: the number of rows, the number of columns, the total number of non-zero elements, and the maximum number of non-zero elements in each row. The following 3 rows specify values (array `V` in wikipedia's description); column indices (array `COL_INDEX`); and row offsets (array `ROW_INDEX`). This argument is optional, but may be helpful during testing.
-- `-v` prints the matrix C (the multiplication result) in the row-major order: the first line specifies the number of rows and the number of columns of the result; i+1-th line is the i-th row of the matrix; this option will be used only on small matrices.
+- `-a/b sparse_matrix_file_a/b` is a path to [CSR](https://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR.2C_CRS_or_Yale_format.29) file storing given sparse matrix. The first row contains 4 integers: the number of rows, the number of columns, the total number of non-zero elements, and the maximum number of non-zero elements in each row. The following 3 rows specify values (array `V` in wikipedia's description); column indices (array `COL_INDEX`); and row offsets (array `ROW_INDEX`). Values may be integers or doubles in format 12.345.
+- `-v` prints the matrix C (the multiplication result) in the row-major order: the first line specifies the number of rows and the number of columns of the result; i+1-th line is the i-th row of the matrix; this option will be used only on small matrices. This argument is optional, but may be helpful during testing.
 - `-t type` specifies which version of the algorithm you have to use. Possible type values are 2D, 3D and balanced. They refer to the 2D-SUMMA; 3D-SUMMA; 3D-SUMMA with load balancing, respectively. In case of `balanced`, there will be additional argument (`-l`), the value of layers `l` introduced by the 3D-SUMMA.
 - `-l layers` specifies the number of layers in the 3D-SUMMA procedure. Applies only to 3D and balanced versions of the algorithm and should be ignored in the 2D case.
 - `-g g_value` prints the number of elements in C greater than the `g_value`.
@@ -111,3 +111,11 @@ Please do not use any source codes of matrix multiplication programs. We recomme
 - How do I know the values of `p_r` and `p_c`?
 
     From number of MPI processes and `p_r = p_c` assumption.
+
+- What can I assume about the martrix size?
+
+    Matrix dimensions will fit into `uint32` type. Number of elements assigned to a single process (split columnwise) will also fit into `uint32`. However, in some performance tests the total number of values in the matrix may exceed `uint32`.
+
+- Can I assume that the whole matrix will fit into the memory of the first process?
+
+    Yes. Because of the CSR format reading part of the martrix is tricky; thus you may assume that the whole matrix will fit into the first process memory at least twice, so that you don't have to worry about it fitting into additional buffers. Note, however, that it's true only for the first process. It may happen that the remaining processes will have lower memory, which fits only their parts.
