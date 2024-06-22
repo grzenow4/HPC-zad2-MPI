@@ -37,6 +37,11 @@ InputOptions parseInput(int argc, char *argv[]) {
         } else if (arg == "-t") {
             if (i + 1 < argc) {
                 options.type = argv[++i];
+                if (options.type != "2D" && options.type != "3D") {
+                    std::cerr << "Unsupported option " << options.type << "\n";
+                    MPI_Finalize();
+                    exit(EXIT_FAILURE);
+                }
             } else {
                 printUsage(argv[0]);
                 MPI_Finalize();
@@ -52,7 +57,7 @@ InputOptions parseInput(int argc, char *argv[]) {
             }
         } else if (arg == "-g") {
             if (i + 1 < argc) {
-                options.gValue = std::stoi(argv[++i]);
+                options.gValue = std::stod(argv[++i]);
             } else {
                 printUsage(argv[0]);
                 MPI_Finalize();

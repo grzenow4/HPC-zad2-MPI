@@ -17,23 +17,34 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-    if (!isSquare(numProcesses)) {
-        std::cerr << "Error wrong number of processes\n";
-        MPI_Finalize();
-        exit(EXIT_FAILURE);
-    }
-
     struct timespec spec;
     clock_gettime(CLOCK_REALTIME, &spec);
     srand(spec.tv_nsec);
 
     InputOptions options = parseInput(argc, argv);
 
+    if (numProcesses % options.layers != 0) {
+        std::cerr << "Layers must divide numProcesses\n";
+        MPI_Finalize();
+        exit(EXIT_FAILURE);
+    }
+
+    if (!isSquare(numProcesses / options.layers)) {
+        std::cerr << "Processes must form a square in each layer\n";
+        MPI_Finalize();
+        exit(EXIT_FAILURE);
+    }
+
     {
-        Grid grid(numProcesses, myRank);
+        Grid grid(numProcesses, myRank, options.layers);
         grid.readMatrices(options.fileA, options.fileB);
-        grid.SUMMA_2D();
-        grid.printMatrix();
+        grid.SUMMA_3D();
+        if (options.gValue > 0) {
+            grid.printGValue(options.gValue);
+        }
+        if (options.verbose) {
+            grid.printMatrix();
+        }
     } // ~Grid() must be called before MPI_Finalize();
 
     MPI_Finalize();

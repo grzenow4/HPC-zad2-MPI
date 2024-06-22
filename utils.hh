@@ -5,10 +5,10 @@
 struct InputOptions {
     std::string fileA;
     std::string fileB;
-    bool verbose;
+    bool verbose = false;
     std::string type;
-    int layers;
-    int gValue;
+    int layers = 1;
+    double gValue = 0;
 };
 
 void printUsage(const std::string& progName);

@@ -13,10 +13,8 @@ struct MatrixElement {
 };
 
 class Matrix {
-public: // private:
+public:
     std::vector<MatrixElement> elements;
-
-    void sort();
 
     Matrix transpose();
 
@@ -24,6 +22,14 @@ public:
     Matrix() = default;
 
     Matrix(std::vector<MatrixElement> elems);
+
+    std::vector<MatrixElement> getElements();
+
+    void sort();
+
+    void scaleElements(int r, int c);
+
+    int countGreater(double g);
 
     Matrix add(Matrix b);
 

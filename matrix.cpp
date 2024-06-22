@@ -4,8 +4,29 @@
 
 Matrix::Matrix(std::vector<MatrixElement> elems) : elements(elems) {}
 
+std::vector<MatrixElement> Matrix::getElements() {
+    return elements;
+}
+
 void Matrix::sort() {
     std::sort(elements.begin(), elements.end());
+}
+
+void Matrix::scaleElements(int r, int c) {
+    for (auto &elem: elements) {
+        elem.row += r;
+        elem.col += c;
+    }
+}
+
+int Matrix::countGreater(double g) {
+    int res = 0;
+    for (auto elem: elements) {
+        if (elem.val > g) {
+            res++;
+        }
+    }
+    return res;
 }
 
 Matrix Matrix::transpose() {
