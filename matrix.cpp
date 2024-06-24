@@ -12,15 +12,20 @@ void Matrix::sort() {
     std::sort(elements.begin(), elements.end());
 }
 
-void Matrix::scaleElements(int r, int c) {
+void Matrix::scaleElements(uint32_t r, uint32_t c, bool sign) {
     for (auto &elem: elements) {
-        elem.row += r;
-        elem.col += c;
+        if (sign) {
+            elem.row += r;
+            elem.col += c;
+        } else {
+            elem.row -= r;
+            elem.col -= c;
+        }
     }
 }
 
-int Matrix::countGreater(double g) {
-    int res = 0;
+u_int32_t Matrix::countGreater(double g) {
+    u_int32_t res = 0;
     for (auto elem: elements) {
         if (elem.val > g) {
             res++;
@@ -38,8 +43,8 @@ Matrix Matrix::transpose() {
 }
 
 Matrix Matrix::add(Matrix b) {
-    int i = 0, j = 0;
-    int lenA = elements.size(), lenB = b.elements.size();
+    uint32_t i = 0, j = 0;
+    uint32_t lenA = elements.size(), lenB = b.elements.size();
     std::vector<MatrixElement> res;
 
     while (i < lenA && j < lenB) {
@@ -75,17 +80,17 @@ Matrix Matrix::multiply(Matrix b) {
     b = b.transpose();
     b.sort();
 
-    int i, j;
-    int lenA = elements.size(), lenB = b.elements.size();
+    uint32_t i, j;
+    uint32_t lenA = elements.size(), lenB = b.elements.size();
     std::vector<MatrixElement> res;
 
     for (i = 0; i < lenA;) {
-        int r = elements[i].row; // current row
+        uint32_t r = elements[i].row; // current row
 
         for (j = 0; j < lenB;) {
-            int c = b.elements[j].row; // current column
+            uint32_t c = b.elements[j].row; // current column
 
-            int tempA = i, tempB = j;
+            uint32_t tempA = i, tempB = j;
             double sum = 0;
 
             while (tempA < lenA && elements[tempA].row == r &&

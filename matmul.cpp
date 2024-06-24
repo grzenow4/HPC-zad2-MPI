@@ -37,7 +37,11 @@ int main(int argc, char *argv[]) {
     {
         Grid grid(numProcesses, myRank, options.layers);
         grid.readMatrices(options.fileA, options.fileB);
-        grid.SUMMA_3D();
+        if (options.type == "2D") {
+            grid.SUMMA_2D(true);
+        } else {
+            grid.SUMMA_3D();
+        }
         if (options.gValue > 0) {
             grid.printGValue(options.gValue);
         }

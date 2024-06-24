@@ -10,7 +10,7 @@ void Grid::createMatrixElementType() {
     const int count = 3;
     int lengths[count] = {1, 1, 1};
     MPI_Aint displacements[count];
-    MPI_Datatype types[count] = {MPI_INT, MPI_INT, MPI_DOUBLE};
+    MPI_Datatype types[count] = {MPI_UINT32_T, MPI_UINT32_T, MPI_DOUBLE};
 
     displacements[0] = offsetof(MatrixElement, row);
     displacements[1] = offsetof(MatrixElement, col);
@@ -20,27 +20,27 @@ void Grid::createMatrixElementType() {
     MPI_Type_commit(&MPI_MATRIX_ELEMENT);
 }
 
-int Grid::getElementOwnerRank(int i, int j, int idx) {
+int Grid::getElementOwnerRank(uint32_t i, uint32_t j, int idx) {
     if (idx == 1) {
         std::swap(i, j);
     }
 
-    int colsPerStrip = matrixSize / strips;
-    int extraCols = matrixSize % strips;
+    uint32_t colsPerStrip = matrixSize / strips;
+    uint32_t extraCols = matrixSize % strips;
 
     int strip = j < (colsPerStrip + 1) * extraCols
-                ? j / (colsPerStrip + 1)
-                : extraCols + (j - (colsPerStrip + 1) * extraCols) / colsPerStrip;
+              ? j / (colsPerStrip + 1)
+              : extraCols + (j - (colsPerStrip + 1) * extraCols) / colsPerStrip;
     int layer = strip % layers;
 
     int layerCol = strip / layers;
 
-    int rowsPerProc = matrixSize / sqrtLayerNumProcesses;
-    int extraRows = matrixSize % sqrtLayerNumProcesses;
+    uint32_t rowsPerProc = matrixSize / sqrtLayerNumProcesses;
+    uint32_t extraRows = matrixSize % sqrtLayerNumProcesses;
 
     int layerRow = i < (rowsPerProc + 1) * extraRows
-                   ? i / (rowsPerProc + 1)
-                   : extraRows + (i - (rowsPerProc + 1) * extraRows) / rowsPerProc;
+                 ? i / (rowsPerProc + 1)
+                 : extraRows + (i - (rowsPerProc + 1) * extraRows) / rowsPerProc;
 
     if (idx == 1) {
         std::swap(layerRow, layerCol);
@@ -49,28 +49,28 @@ int Grid::getElementOwnerRank(int i, int j, int idx) {
     return layer * layerNumProcesses + layerRow * sqrtLayerNumProcesses + layerCol;
 }
 
-int Grid::getFirstRowOfProcessA() {
-    int rowsPerProc = matrixSize / sqrtLayerNumProcesses;
+uint32_t Grid::getFirstRowOfProcessA() {
+    uint32_t rowsPerProc = matrixSize / sqrtLayerNumProcesses;
     int extraRows = matrixSize % sqrtLayerNumProcesses;
     return procRow * rowsPerProc + std::min(procRow, extraRows);
 }
 
-int Grid::getFirstColOfProcessA() {
+uint32_t Grid::getFirstColOfProcessA() {
     int procStrip = layers * procCol + procLayer;
-    int colsPerStrip = matrixSize / strips;
+    uint32_t colsPerStrip = matrixSize / strips;
     int extraCols = matrixSize % strips;
     return procStrip * colsPerStrip + std::min(procStrip, extraCols);
 }
 
-int Grid::getFirstRowOfProcessB() {
+uint32_t Grid::getFirstRowOfProcessB() {
     int procStrip = layers * procRow + procLayer;
-    int rowsPerStrip = matrixSize / strips;
+    uint32_t rowsPerStrip = matrixSize / strips;
     int extraRows = matrixSize % strips;
     return procStrip * rowsPerStrip + std::min(procStrip, extraRows);
 }
 
-int Grid::getFirstColOfProcessB() {
-    int colsPerProc = matrixSize / sqrtLayerNumProcesses;
+uint32_t Grid::getFirstColOfProcessB() {
+    uint32_t colsPerProc = matrixSize / sqrtLayerNumProcesses;
     int extraCols = matrixSize % sqrtLayerNumProcesses;
     return procCol * colsPerProc + std::min(procCol, extraCols);
 }
@@ -94,7 +94,7 @@ Grid::~Grid() {
     MPI_Type_free(&MPI_MATRIX_ELEMENT);
 }
 
-void Grid::readMatrix(const std::string& file, Matrix &matrix, int idx) {
+void Grid::readMatrix(const std::string& file, int idx) {
     std::ifstream matrixFile(file);
 
     if (!matrixFile.is_open()) {
@@ -103,43 +103,44 @@ void Grid::readMatrix(const std::string& file, Matrix &matrix, int idx) {
         exit(EXIT_FAILURE);
     }
 
-    int numRows, numCols, numNonZero, maxRowNonZero;
+    uint32_t numRows, numCols, maxRowNonZero;
+    uint64_t numNonZero;
     matrixFile >> numRows >> numCols >> numNonZero >> maxRowNonZero;
     matrixSize = numRows;
 
     std::vector<MatrixElement> elements;
 
     if (myRank == 0) {
-        std::vector<int> counts(numProcesses);
+        std::vector<uint32_t> counts(numProcesses);
         std::vector<double> values(numNonZero);
-        std::vector<int> columns(numNonZero);
-        std::vector<int> rowIndex(numRows + 1);
+        std::vector<uint32_t> columns(numNonZero);
+        std::vector<uint32_t> rowIndex(numRows + 1);
 
-        for (int i = 0; i < numNonZero; i++) {
+        for (uint64_t i = 0; i < numNonZero; i++) {
             matrixFile >> values[i];
         }
-        for (int i = 0; i < numNonZero; i++) {
+        for (uint64_t i = 0; i < numNonZero; i++) {
             matrixFile >> columns[i];
         }
-        for (int i = 0; i <= numRows; i++) {
+        for (uint64_t i = 0; i <= numRows; i++) {
             matrixFile >> rowIndex[i];
         }
 
-        for (int row = 0; row < numRows; row++) {
-            for (int j = rowIndex[row]; j < rowIndex[row + 1]; j++) {
-                int col = columns[j];
+        for (uint32_t row = 0; row < numRows; row++) {
+            for (uint32_t j = rowIndex[row]; j < rowIndex[row + 1]; j++) {
+                uint32_t col = columns[j];
                 int rank = getElementOwnerRank(row, col, idx);
                 counts[rank]++;
             }
         }
 
         for (int p = 1; p < numProcesses; p++) {
-            MPI_Send(&counts[p], 1, MPI_INT, p, 0, MPI_COMM_WORLD);
+            MPI_Send(&counts[p], 1, MPI_UINT32_T, p, 0, MPI_COMM_WORLD);
         }
 
-        for (int row = 0; row < numRows; row++) {
-            for (int j = rowIndex[row]; j < rowIndex[row + 1]; j++) {
-                int col = columns[j];
+        for (uint32_t row = 0; row < numRows; row++) {
+            for (uint32_t j = rowIndex[row]; j < rowIndex[row + 1]; j++) {
+                uint32_t col = columns[j];
                 double val = values[j];
                 int rank = getElementOwnerRank(row, col, idx);
 
@@ -153,28 +154,29 @@ void Grid::readMatrix(const std::string& file, Matrix &matrix, int idx) {
             }
         }
     } else {
-        int count;
-        MPI_Recv(&count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        for (int i = 0; i < count; i++) {
+        uint32_t count;
+        MPI_Recv(&count, 1, MPI_UINT32_T, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        for (uint32_t i = 0; i < count; i++) {
             MatrixElement elem;
             MPI_Recv(&elem, 1, MPI_MATRIX_ELEMENT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             elements.push_back(elem);
         }
     }
 
-    matrix = Matrix(elements);
     if (idx == 0) {
-        matrix.scaleElements(-getFirstRowOfProcessA(), -getFirstColOfProcessA());
+        matrixA = Matrix(elements);
+        matrixA.scaleElements(getFirstRowOfProcessA(), getFirstColOfProcessA(), false);
     } else {
-        matrix.scaleElements(-getFirstRowOfProcessB(), -getFirstColOfProcessB());
+        matrixB = Matrix(elements);
+        matrixB.scaleElements(getFirstRowOfProcessB(), getFirstColOfProcessB(), false);
     }
 
     matrixFile.close();
 }
 
 void Grid::readMatrices(const std::string& fileA, const std::string& fileB) {
-    readMatrix(fileA, matrixA, 0);
-    readMatrix(fileB, matrixB, 1);
+    readMatrix(fileA, 0);
+    readMatrix(fileB, 1);
 }
 
 Matrix Grid::broadcastRow(Matrix matrix, int stage) {
@@ -186,14 +188,12 @@ Matrix Grid::broadcastRow(Matrix matrix, int stage) {
         &row_comm
     );
 
-    int root = procLayer * layerNumProcesses + procRow * sqrtLayerNumProcesses + stage;
-
-    int numElements = matrixA.getElements().size();
+    uint32_t numElements = matrixA.getElements().size();
     MPI_Request req;
     MPI_Ibcast(
         &numElements,
         1,
-        MPI_INT,
+        MPI_UINT32_T,
         stage,
         row_comm,
         &req
@@ -234,14 +234,12 @@ Matrix Grid::broadcastCol(Matrix matrix, int stage) {
         &col_comm
     );
 
-    int root = procLayer * layerNumProcesses + stage * sqrtLayerNumProcesses + procCol;
-
-    int numElements = matrixB.getElements().size();
+    uint32_t numElements = matrixB.getElements().size();
     MPI_Request req;
     MPI_Ibcast(
         &numElements,
         1,
-        MPI_INT,
+        MPI_UINT32_T,
         stage,
         col_comm,
         &req
@@ -274,21 +272,18 @@ Matrix Grid::broadcastCol(Matrix matrix, int stage) {
 }
 
 std::vector<std::vector<MatrixElement>> Grid::colSplit() {
-    int q = matrixSize / sqrtLayerNumProcesses;
+    uint32_t q = matrixSize / sqrtLayerNumProcesses;
     int r = matrixSize % sqrtLayerNumProcesses;
-    int cols = q + (procCol < r);
-    int colsPerLayer = cols / layers;
+    uint32_t cols = q + (procCol < r);
+    uint32_t colsPerLayer = cols / layers;
     int extraCols = cols % layers;
 
     std::vector<std::vector<MatrixElement>> res(layers);
 
     for (auto elem: matrixC.getElements()) {
-        int which;
-        if (elem.col < (colsPerLayer + 1) * extraCols) {
-            which = elem.col / (colsPerLayer + 1);
-        } else {
-            which = extraCols + (elem.col - (colsPerLayer + 1) * extraCols) / colsPerLayer;
-        }
+        int which = elem.col < (colsPerLayer + 1) * extraCols
+                  ? elem.col / (colsPerLayer + 1)
+                  : extraCols + (elem.col - (colsPerLayer + 1) * extraCols) / colsPerLayer;
         res[which].push_back(elem);
     }
 
@@ -313,7 +308,7 @@ void Grid::allToAll(std::vector<std::vector<MatrixElement>> matricesD) {
         recvDisplacements[i] = recvDisplacements[i - 1] + recvCounts[i - 1];
     }
 
-    int totalSendElements = 0;
+    uint32_t totalSendElements = 0;
     for (auto count: sendCounts) {
         totalSendElements += count;
     }
@@ -323,7 +318,7 @@ void Grid::allToAll(std::vector<std::vector<MatrixElement>> matricesD) {
         sendBuffer.insert(sendBuffer.end(), elements.begin(), elements.end());
     }
 
-    int totalRecvElements = 0;
+    uint32_t totalRecvElements = 0;
     for (auto count: recvCounts) {
         totalRecvElements += count;
     }
@@ -349,16 +344,18 @@ void Grid::allToAll(std::vector<std::vector<MatrixElement>> matricesD) {
         matrixC = matrixC.add(elements);
     }
 
-    int q = matrixSize / sqrtLayerNumProcesses;
-    int r = matrixSize % sqrtLayerNumProcesses;
-    int rowOffset = procRow * q + std::min(procRow, r);
-    int colOffset = procCol * q + std::min(procCol, r);
-    matrixC.scaleElements(rowOffset, colOffset);
-
     MPI_Comm_free(&fiber_comm);
 }
 
-void Grid::SUMMA_2D() {
+void Grid::scaleMatrices() {
+    uint32_t q = matrixSize / sqrtLayerNumProcesses;
+    int r = matrixSize % sqrtLayerNumProcesses;
+    uint32_t rowOffset = procRow * q + std::min(procRow, r);
+    uint32_t colOffset = procCol * q + std::min(procCol, r);
+    matrixC.scaleElements(rowOffset, colOffset, true);
+}
+
+void Grid::SUMMA_2D(bool only2D) {
     int stages = sqrtLayerNumProcesses;
     std::vector<Matrix> partialResults(stages);
     for (int i = 0; i < stages; i++) {
@@ -369,12 +366,16 @@ void Grid::SUMMA_2D() {
     for (auto partial: partialResults) {
         matrixC = matrixC.add(partial);
     }
+    if (only2D) {
+        scaleMatrices();
+    }
 }
 
 void Grid::SUMMA_3D() {
-    SUMMA_2D();
+    SUMMA_2D(false);
     std::vector<std::vector<MatrixElement>> matricesD = colSplit();
     allToAll(matricesD);
+    scaleMatrices();
 }
 
 void Grid::printGValue(double gValue) {
@@ -401,7 +402,7 @@ void Grid::printMatrix() {
             displacements[i] = displacements[i - 1] + recvCounts[i - 1];
         }
 
-        allElements.resize(displacements[numProcesses - 1] + recvCounts[numProcesses - 1]);
+        allElements.resize((uint32_t) displacements[numProcesses - 1] + (uint32_t) recvCounts[numProcesses - 1]);
     }
 
     MPI_Gatherv(
@@ -413,12 +414,12 @@ void Grid::printMatrix() {
     if (myRank == 0) {
         Matrix m(allElements);
         m.sort();
-        int idx = 0;
+        size_t idx = 0;
 
         std::cout << matrixSize << " " << matrixSize << "\n";
 
-        for (int i = 0; i < matrixSize; i++) {
-            for (int j = 0; j < matrixSize; j++) {
+        for (uint32_t i = 0; i < matrixSize; i++) {
+            for (uint32_t j = 0; j < matrixSize; j++) {
                 if (idx < m.getElements().size() &&
                     m.getElements()[idx].row == i &&
                     m.getElements()[idx].col == j) {

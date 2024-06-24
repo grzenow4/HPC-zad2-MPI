@@ -70,6 +70,10 @@ InputOptions parseInput(int argc, char *argv[]) {
         }
     }
 
+    if (options.type == "2D") {
+        options.layers = 1;
+    }
+
     return options;
 }
 

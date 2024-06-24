@@ -1,10 +1,11 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
 struct MatrixElement {
-    int row;
-    int col;
+    uint32_t row;
+    uint32_t col;
     double val;
 
     bool operator<(const MatrixElement& other) {
@@ -27,9 +28,9 @@ public:
 
     void sort();
 
-    void scaleElements(int r, int c);
+    void scaleElements(uint32_t r, uint32_t c, bool sign);
 
-    int countGreater(double g);
+    uint32_t countGreater(double g);
 
     Matrix add(Matrix b);
 
