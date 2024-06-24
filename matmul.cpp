@@ -1,4 +1,5 @@
 #include <cassert>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -7,8 +8,6 @@
 #include "matrix.hh"
 #include "grid.hh"
 #include "utils.hh"
-
-#include <random>
 
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
