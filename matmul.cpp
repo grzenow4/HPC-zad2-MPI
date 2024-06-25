@@ -16,10 +16,6 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-    struct timespec spec;
-    clock_gettime(CLOCK_REALTIME, &spec);
-    srand(spec.tv_nsec);
-
     InputOptions options = parseInput(argc, argv);
 
     if (numProcesses % options.layers != 0) {
@@ -42,7 +38,7 @@ int main(int argc, char *argv[]) {
         } else {
             grid.SUMMA_3D();
         }
-        if (options.gValue > 0) {
+        if (options.gValue >= 0) {
             grid.printGValue(options.gValue);
         }
         if (options.verbose) {

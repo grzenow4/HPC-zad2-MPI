@@ -8,7 +8,7 @@ struct InputOptions {
     bool verbose = false;
     std::string type;
     int layers = 1;
-    double gValue = 0;
+    double gValue = -1;
 };
 
 void printUsage(const std::string& progName);

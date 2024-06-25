@@ -379,9 +379,9 @@ void Grid::SUMMA_3D() {
 }
 
 void Grid::printGValue(double gValue) {
-    double gValGlob;
-    double gValLoc = matrixC.countGreater(gValue);
-    MPI_Reduce(&gValLoc, &gValGlob, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    uint32_t gValGlob;
+    uint32_t gValLoc = matrixC.countGreater(gValue);
+    MPI_Reduce(&gValLoc, &gValGlob, 1, MPI_UINT32_T, MPI_SUM, 0, MPI_COMM_WORLD);
 
     if (myRank == 0) {
         std::cout << gValGlob << "\n";
