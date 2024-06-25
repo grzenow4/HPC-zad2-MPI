@@ -111,7 +111,7 @@ void Grid::readMatrix(const std::string& file, int idx) {
     std::vector<MatrixElement> elements;
 
     if (myRank == 0) {
-        std::vector<uint32_t> counts(numProcesses);
+        std::vector<std::vector<MatrixElement>> allElements(numProcesses);
         std::vector<double> values(numNonZero);
         std::vector<uint32_t> columns(numNonZero);
         std::vector<uint32_t> rowIndex(numRows + 1);
@@ -129,38 +129,25 @@ void Grid::readMatrix(const std::string& file, int idx) {
         for (uint32_t row = 0; row < numRows; row++) {
             for (uint32_t j = rowIndex[row]; j < rowIndex[row + 1]; j++) {
                 uint32_t col = columns[j];
-                int rank = getElementOwnerRank(row, col, idx);
-                counts[rank]++;
-            }
-        }
-
-        for (int p = 1; p < numProcesses; p++) {
-            MPI_Send(&counts[p], 1, MPI_UINT32_T, p, 0, MPI_COMM_WORLD);
-        }
-
-        for (uint32_t row = 0; row < numRows; row++) {
-            for (uint32_t j = rowIndex[row]; j < rowIndex[row + 1]; j++) {
-                uint32_t col = columns[j];
                 double val = values[j];
                 int rank = getElementOwnerRank(row, col, idx);
-
-                MatrixElement elem = {row, col, val};
-
-                if (rank == 0) {
-                    elements.push_back(elem);
-                } else {
-                    MPI_Send(&elem, 1, MPI_MATRIX_ELEMENT, rank, 0, MPI_COMM_WORLD);
-                }
+                allElements[rank].push_back({row, col, val});
             }
         }
+
+        std::vector<MPI_Request> requests(numProcesses - 1);
+        elements = allElements[0];
+        for (int p = 1; p < numProcesses; p++) {
+            uint32_t count = allElements[p].size();
+            MPI_Send(&count, 1, MPI_UINT32_T, p, 0, MPI_COMM_WORLD);
+            MPI_Isend(allElements[p].data(), allElements[p].size(), MPI_MATRIX_ELEMENT, p, 0, MPI_COMM_WORLD, &requests[p - 1]);
+        }
+        MPI_Waitall(numProcesses - 1, requests.data(), MPI_STATUSES_IGNORE);
     } else {
         uint32_t count;
         MPI_Recv(&count, 1, MPI_UINT32_T, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        for (uint32_t i = 0; i < count; i++) {
-            MatrixElement elem;
-            MPI_Recv(&elem, 1, MPI_MATRIX_ELEMENT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            elements.push_back(elem);
-        }
+        elements.resize(count);
+        MPI_Recv(elements.data(), count, MPI_MATRIX_ELEMENT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
     if (idx == 0) {
